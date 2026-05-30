@@ -36,9 +36,9 @@ DIM      = (48, 54, 61)       # #30363D
 def get_font(size):
     """Try to load a decent font, fall back to default."""
     font_paths = [
-        "C:/Windows/Fonts/consola.ttf",
         "C:/Windows/Fonts/segoeui.ttf",
         "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/consola.ttf",
     ]
     for fp in font_paths:
         if os.path.exists(fp):
@@ -48,9 +48,9 @@ def get_font(size):
 
 def get_bold_font(size):
     font_paths = [
-        "C:/Windows/Fonts/consolab.ttf",
         "C:/Windows/Fonts/segoeuib.ttf",
         "C:/Windows/Fonts/arialbd.ttf",
+        "C:/Windows/Fonts/consolab.ttf",
     ]
     for fp in font_paths:
         if os.path.exists(fp):
@@ -443,28 +443,33 @@ def generate_github_analytics(username, days_back=90, token=None):
     # X-axis base line
     draw.line([(graph_x0, graph_y1), (graph_x1, graph_y1)], fill=DIM, width=2)
     
-    # X-axis month labels and tick marks
+    # X-axis day numbers and tick marks
+    label_step = 1
+    if days_back > 30:
+        label_step = 2
+    if days_back > 60:
+        label_step = 5
+        
+    for i, date in enumerate(dates_list):
+        if i % label_step == 0 or i == len(dates_list) - 1:
+            day_str = str(date.day)
+            x = points[i][0]
+            # Draw tick
+            draw.line([(x, graph_y1), (x, graph_y1 + 4)], fill=DIM, width=1)
+            # Draw day number text
+            draw.text((x, graph_y1 + 10), day_str, fill=GRAY, font=font_xs, anchor="mt")
+            
+    # X-axis month labels (drawn below day numbers)
     last_month = None
-    last_label_idx = -99
     for i, date in enumerate(dates_list):
         month_str = date.strftime("%b")
         if month_str != last_month:
-            # Check if this new month label is too close to the last one (e.g. less than 10 days)
-            if i - last_label_idx >= 10:
-                x = points[i][0]
-                # Draw tick
-                draw.line([(x, graph_y1), (x, graph_y1 + 5)], fill=GRAY, width=1)
-                # Draw month text
-                draw.text((x, graph_y1 + 15), month_str, fill=GRAY, font=font_xs, anchor="mt")
-                last_month = month_str
-                last_label_idx = i
+            x = points[i][0]
+            draw.text((x, graph_y1 + 28), month_str, fill=WHITE, font=font_sm, anchor="mt")
+            last_month = month_str
             
-    # Sublabels on X-axis sides
-    draw.text((graph_x0, graph_y1 + 35), f"{days_back} Days Ago", fill=GRAY, font=font_xs, anchor="lt")
-    draw.text((graph_x1, graph_y1 + 35), "Today", fill=GRAY, font=font_xs, anchor="rt")
-    
     # X-axis title
-    draw.text((W // 2, graph_y1 + 45), "Days", fill=GRAY, font=font_sm, anchor="mm")
+    draw.text((W // 2, graph_y1 + 48), "Days", fill=GRAY, font=font_sm, anchor="mm")
     
     # Footer
     footer_y = H - 25

@@ -16,7 +16,7 @@ import os
 # ── Configuration ──────────────────────────────────────────────
 GITHUB_USERNAME = "ArPaN-DS"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", None)  # Set via environment variable or repository secret
-DAYS_BACK = 90  # Change to 30, 60, or 120
+DAYS_BACK = 60  # Change to 30, 60, or 120
 OUTPUT_PATH = "assets/github_analytics.png"
 
 # ── Color Palette (matching profile theme) ──────────────────────

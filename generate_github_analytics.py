@@ -384,13 +384,33 @@ def generate_github_analytics(username, days_back=90, token=None):
         y = graph_y1 - (count / y_max) * graph_h
         points.append((x, y))
         
-    # 1. Layered Fading Gradient under the curve
+    # Generate smooth spline points for curve rendering (Catmull-Rom spline)
+    spline_points = []
+    if len(points) >= 3:
+        control_points = [points[0]] + points + [points[-1]]
+        num_segments = 8  # interpolate 8 points between each day for maximum smoothness
+        for i in range(1, len(control_points) - 2):
+            p0, p1, p2, p3 = control_points[i-1], control_points[i], control_points[i+1], control_points[i+2]
+            for step in range(num_segments):
+                t = step / float(num_segments)
+                t2 = t * t
+                t3 = t2 * t
+                sx = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3)
+                sy = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
+                # Clip values to stay within the graph boundaries
+                sy = max(graph_y0, min(graph_y1, sy))
+                spline_points.append((sx, sy))
+        spline_points.append(points[-1])
+    else:
+        spline_points = points
+        
+    # 1. Layered Fading Gradient under the curve (using smooth spline)
     gradient_overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     gradient_draw = ImageDraw.Draw(gradient_overlay)
     for k in range(6):
         factor = (k + 1) / 6.0  # opacity layer heights from 1/6 to 6/6
         layer_points = []
-        for x, y in points:
+        for x, y in spline_points:
             h = graph_y1 - y
             y_layer = graph_y1 - h * factor
             layer_points.append((x, y_layer))
@@ -399,14 +419,14 @@ def generate_github_analytics(username, days_back=90, token=None):
         gradient_draw.polygon(layer_polygon, fill=(124, 58, 237, 6))
     img.paste(gradient_overlay, (0, 0), gradient_overlay)
     
-    # 2. Dual-Pass Glowing Line Chart (Pass 1: wide glow overlay)
+    # 2. Dual-Pass Glowing Line Chart (Pass 1: wide glow overlay using smooth spline)
     glow_overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     glow_draw = ImageDraw.Draw(glow_overlay)
-    glow_draw.line(points, fill=(124, 58, 237, 45), width=7)
+    glow_draw.line(spline_points, fill=(124, 58, 237, 45), width=7)
     img.paste(glow_overlay, (0, 0), glow_overlay)
     
-    # 3. Dual-Pass Glowing Line Chart (Pass 2: sharp electric violet line)
-    draw.line(points, fill=(168, 85, 247), width=3)
+    # 3. Dual-Pass Glowing Line Chart (Pass 2: sharp electric violet line using smooth spline)
+    draw.line(spline_points, fill=(168, 85, 247), width=3)
     
     # 4. Glowing dual-circle data markers
     point_overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))

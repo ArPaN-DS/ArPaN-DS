@@ -223,7 +223,7 @@ def draw_vertical_text(draw, img, text, pos, fill, font):
     img.paste(rotated, (px, py), rotated)
 
 
-def generate_github_analytics(username, days_back=90, token=None):
+def generate_github_analytics(username, days_back=60, token=None):
     """Generate GitHub Analytics dashboard image."""
     print(f"📊 Generating GitHub Analytics for {username}...")
     print(f"   Timeline: Last {days_back} days")
@@ -242,109 +242,79 @@ def generate_github_analytics(username, days_back=90, token=None):
     # Calculate streaks
     streaks = calculate_streaks(contributions_by_date)
     
-    # Image dimensions (Cropped height for compact layout, removing duplicate title)
-    W, H = 1200, 680
+    # Image dimensions (Spacious 1200 x 800 layout)
+    W, H = 1200, 800
     img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
     
     # Fonts
+    font_title = get_bold_font(32)
     font_metric = get_bold_font(60)
     font_metric_sm = get_bold_font(38)
     font_label = get_bold_font(16)
     font_sm = get_font(14)
     font_xs = get_font(12)
     
-    # Top metrics row (shifted up to y = 40)
-    metrics_y = 40
-    metric_width = 280
-    metric_height = 150
-    metrics_x_positions = [120, 460, 800]
+    # Top title "GitHub Analytics"
+    draw.text((W // 2, 55), "GitHub Analytics", fill=WHITE, font=font_title, anchor="mm")
     
-    # ── Card 1: Total Contributions ──
-    x1 = metrics_x_positions[0]
-    draw.rounded_rectangle(
-        [(x1, metrics_y), (x1 + metric_width, metrics_y + metric_height)],
-        radius=15,
-        fill=CARD_BG,
-        outline=DIM,
-        width=2
-    )
-    draw.text((x1 + metric_width // 2, metrics_y + 50), str(total_contributions), fill=WHITE, font=font_metric, anchor="mm")
-    draw.text((x1 + metric_width // 2, metrics_y + 98), "Total Contributions", fill=WHITE, font=font_label, anchor="mm")
-    draw.text((x1 + metric_width // 2, metrics_y + 122), "Dec 7, 2024 - Present", fill=GRAY, font=font_xs, anchor="mm")
+    # Horizontal rule separator under title
+    draw.line([(100, 100), (W - 100, 100)], fill=DIM, width=1)
     
-    # ── Card 2: Current Streak (Circular progress design) ──
-    x2 = metrics_x_positions[1]
-    draw.rounded_rectangle(
-        [(x2, metrics_y), (x2 + metric_width, metrics_y + metric_height)],
-        radius=15,
-        fill=CARD_BG,
-        outline=DIM,
-        width=2
-    )
-    cx, cy = x2 + metric_width // 2, metrics_y + metric_height // 2
-    r = 34
-    circle_y = cy - 18
-    # Inactive track
-    draw.ellipse([(cx - r, circle_y - r), (cx + r, circle_y + r)], outline=DIM, width=4)
-    # Active arc (glowing purple to blue gradient feel)
-    draw.arc([(cx - r, circle_y - r), (cx + r, circle_y + r)], start=-90, end=90 if streaks["current"] > 0 else -90, fill=PURPLE, width=4)
-    draw.arc([(cx - r, circle_y - r), (cx + r, circle_y + r)], start=90, end=270 if streaks["current"] > 0 else 90, fill=BLUE, width=4)
+    # Metrics Row Positions (naked layout, floating text)
+    cx1, cx2, cx3 = 270, 600, 930
+    cy = 200
     
-    # Custom double-layered flame shape (Orange-500 outer, Yellow-500 inner)
-    flame_y = circle_y - r - 6
-    outer_points = [
-        (cx, flame_y - 12),
-        (cx + 6, flame_y - 5),
-        (cx + 4, flame_y - 1),
-        (cx + 7, flame_y + 4),
-        (cx, flame_y + 8),
-        (cx - 7, flame_y + 4),
-        (cx - 4, flame_y - 1),
-        (cx - 6, flame_y - 5),
+    # Vertical separators between metrics
+    draw.line([(440, 135), (440, 265)], fill=DIM, width=1)
+    draw.line([(760, 135), (760, 265)], fill=DIM, width=1)
+    
+    # ── Left Metric: Total Contributions (Blue value, white label) ──
+    draw.text((cx1, cy - 15), str(total_contributions), fill=BLUE, font=font_metric, anchor="mm")
+    draw.text((cx1, cy + 32), "Total Contributions", fill=WHITE, font=font_label, anchor="mm")
+    draw.text((cx1, cy + 58), "Dec 7, 2024 - Present", fill=GRAY, font=font_xs, anchor="mm")
+    
+    # ── Middle Metric: Current Streak (Circular progress ring with flame outline) ──
+    r = 38
+    circle_y = cy - 20
+    # Ring
+    draw.ellipse([(cx2 - r, circle_y - r), (cx2 + r, circle_y + r)], outline=DIM, width=4)
+    draw.arc([(cx2 - r, circle_y - r), (cx2 + r, circle_y + r)], start=-90, end=270 if streaks["current"] > 0 else -90, fill=PURPLE, width=4)
+    
+    # Purple flame shape outline on top of ring
+    flame_y = circle_y - r - 5
+    flame_points = [
+        (cx2, flame_y - 12),
+        (cx2 + 6, flame_y - 5),
+        (cx2 + 4, flame_y - 1),
+        (cx2 + 7, flame_y + 4),
+        (cx2, flame_y + 8),
+        (cx2 - 7, flame_y + 4),
+        (cx2 - 4, flame_y - 1),
+        (cx2 - 6, flame_y - 5),
     ]
-    inner_points = [
-        (cx, flame_y - 6),
-        (cx + 3, flame_y - 2),
-        (cx + 2, flame_y + 1),
-        (cx + 4, flame_y + 3),
-        (cx, flame_y + 6),
-        (cx - 4, flame_y + 3),
-        (cx - 2, flame_y + 1),
-        (cx - 3, flame_y - 2),
-    ]
-    draw.polygon(outer_points, fill=(249, 115, 22))  # Orange
-    draw.polygon(inner_points, fill=(234, 179, 8))   # Yellow
+    draw.polygon(flame_points, outline=PURPLE, fill=BG, width=2)
     
-    # Text inside the circle
-    draw.text((cx, circle_y + 2), str(streaks["current"]), fill=WHITE, font=font_metric_sm, anchor="mm")
-    # Text below circle
-    draw.text((cx, cy + 40), "Current Streak", fill=BLUE, font=font_label, anchor="mm")
-    draw.text((cx, cy + 60), streaks["current_range"] if streaks["current_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
+    # Texts
+    draw.text((cx2, circle_y + 2), str(streaks["current"]), fill=WHITE, font=font_metric_sm, anchor="mm")
+    draw.text((cx2, cy + 46), "Current Streak", fill=BLUE, font=font_label, anchor="mm")
+    draw.text((cx2, cy + 72), streaks["current_range"] if streaks["current_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
     
-    # ── Card 3: Longest Streak ──
-    x3 = metrics_x_positions[2]
-    draw.rounded_rectangle(
-        [(x3, metrics_y), (x3 + metric_width, metrics_y + metric_height)],
-        radius=15,
-        fill=CARD_BG,
-        outline=DIM,
-        width=2
-    )
-    draw.text((x3 + metric_width // 2, metrics_y + 50), str(streaks["longest"]), fill=BLUE, font=font_metric, anchor="mm")
-    draw.text((x3 + metric_width // 2, metrics_y + 98), "Longest Streak", fill=WHITE, font=font_label, anchor="mm")
-    draw.text((x3 + metric_width // 2, metrics_y + 122), streaks["longest_range"] if streaks["longest_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
+    # ── Right Metric: Longest Streak (Blue value, white label) ──
+    draw.text((cx3, cy - 15), str(streaks["longest"]), fill=BLUE, font=font_metric, anchor="mm")
+    draw.text((cx3, cy + 32), "Longest Streak", fill=WHITE, font=font_label, anchor="mm")
+    draw.text((cx3, cy + 58), streaks["longest_range"] if streaks["longest_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
     
-    # ── Line Graph Section (Shifted up to y0 = 240, y1 = 580) ──
-    graph_y0 = 240
-    graph_y1 = 580
-    graph_x0 = 120
-    graph_x1 = 1080
+    # ── Line Graph Section ──
+    graph_y0 = 400
+    graph_y1 = 710
+    graph_x0 = 100
+    graph_x1 = 1100
     graph_w = graph_x1 - graph_x0
     graph_h = graph_y1 - graph_y0
     
-    # Graph Title
-    draw.text((W // 2, graph_y0 - 25), f"{username}'s Contribution Graph", fill=WHITE, font=font_label, anchor="mm")
+    # Graph Title (Light blue "Arpan Majumdar's Contribution Graph")
+    draw.text((W // 2, graph_y0 - 40), "Arpan Majumdar's Contribution Graph", fill=BLUE, font=font_label, anchor="mm")
     
     # Gather contribution data list for the last days_back days
     today = datetime.now().date()
@@ -362,20 +332,16 @@ def generate_github_analytics(username, days_back=90, token=None):
         max_val = 1
     y_max = ((max_val // 10) + 1) * 10 if max_val > 10 else 10
     
-    # Draw horizontal dotted grid lines
+    # 1. Draw horizontal dotted grid lines
     num_grid_lines = 5
     for i in range(num_grid_lines):
         val = int(i * y_max / (num_grid_lines - 1))
         y = graph_y1 - (val / y_max) * graph_h
-        # Dotted line
         for x in range(graph_x0, graph_x1, 8):
             draw.line([(x, y), (x + 4, y)], fill=DIM, width=1)
         # Y label
         draw.text((graph_x0 - 20, y), str(val), fill=GRAY, font=font_xs, anchor="rm")
         
-    # Vertical "Contributions" text on the left
-    draw_vertical_text(draw, img, "Contributions", (graph_x0 - 60, graph_y0 + graph_h // 2), fill=GRAY, font=font_xs)
-    
     # Map points to screen coordinates
     points = []
     x_spacing = graph_w / (days_back - 1)
@@ -384,11 +350,24 @@ def generate_github_analytics(username, days_back=90, token=None):
         y = graph_y1 - (count / y_max) * graph_h
         points.append((x, y))
         
-    # Generate smooth spline points for curve rendering (Catmull-Rom spline)
+    # 2. Draw vertical dotted grid lines at label steps
+    label_step = 1
+    if days_back > 30:
+        label_step = 2
+    if days_back > 60:
+        label_step = 5
+        
+    for i in range(len(points)):
+        if i % label_step == 0 or i == len(points) - 1:
+            x = points[i][0]
+            for y in range(graph_y0, graph_y1, 8):
+                draw.line([(x, y), (x, y + 4)], fill=DIM, width=1)
+                
+    # Generate smooth spline points (Catmull-Rom spline)
     spline_points = []
     if len(points) >= 3:
         control_points = [points[0]] + points + [points[-1]]
-        num_segments = 8  # interpolate 8 points between each day for maximum smoothness
+        num_segments = 8
         for i in range(1, len(control_points) - 2):
             p0, p1, p2, p3 = control_points[i-1], control_points[i], control_points[i+1], control_points[i+2]
             for step in range(num_segments):
@@ -397,66 +376,37 @@ def generate_github_analytics(username, days_back=90, token=None):
                 t3 = t2 * t
                 sx = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3)
                 sy = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
-                # Clip values to stay within the graph boundaries
                 sy = max(graph_y0, min(graph_y1, sy))
                 spline_points.append((sx, sy))
         spline_points.append(points[-1])
     else:
         spline_points = points
         
-    # 1. Layered Fading Gradient under the curve (using smooth spline)
+    # 3. Translucent purple fill under the curve
     gradient_overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     gradient_draw = ImageDraw.Draw(gradient_overlay)
-    for k in range(6):
-        factor = (k + 1) / 6.0  # opacity layer heights from 1/6 to 6/6
-        layer_points = []
-        for x, y in spline_points:
-            h = graph_y1 - y
-            y_layer = graph_y1 - h * factor
-            layer_points.append((x, y_layer))
-        
-        layer_polygon = [(graph_x0, graph_y1)] + layer_points + [(graph_x1, graph_y1)]
-        gradient_draw.polygon(layer_polygon, fill=(124, 58, 237, 6))
+    polygon_points = [(graph_x0, graph_y1)] + spline_points + [(graph_x1, graph_y1)]
+    gradient_draw.polygon(polygon_points, fill=(124, 58, 237, 40))
     img.paste(gradient_overlay, (0, 0), gradient_overlay)
     
-    # 2. Dual-Pass Glowing Line Chart (Pass 1: wide glow overlay using smooth spline)
-    glow_overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow_overlay)
-    glow_draw.line(spline_points, fill=(124, 58, 237, 45), width=7)
-    img.paste(glow_overlay, (0, 0), glow_overlay)
+    # 4. Solid purple curve line
+    draw.line(spline_points, fill=PURPLE, width=3)
     
-    # 3. Dual-Pass Glowing Line Chart (Pass 2: sharp electric violet line using smooth spline)
-    draw.line(spline_points, fill=(168, 85, 247), width=3)
-    
-    # 4. Glowing dual-circle data markers
-    point_overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    point_draw = ImageDraw.Draw(point_overlay)
+    # 5. Data markers (white dots with purple borders)
     for x, y in points:
-        # Outer glow
-        point_draw.ellipse([(x - 4.5, y - 4.5), (x + 4.5, y + 4.5)], fill=(168, 85, 247, 100))
-    img.paste(point_overlay, (0, 0), point_overlay)
-    
-    for x, y in points:
-        # Inner white core with purple outline
-        draw.ellipse([(x - 2.5, y - 2.5), (x + 2.5, y + 2.5)], fill=WHITE, outline=(168, 85, 247), width=1)
+        draw.ellipse([(x - 3, y - 3), (x + 3, y + 3)], fill=WHITE, outline=PURPLE, width=1)
         
     # X-axis base line
     draw.line([(graph_x0, graph_y1), (graph_x1, graph_y1)], fill=DIM, width=2)
     
-    # X-axis day numbers and tick marks
-    label_step = 1
-    if days_back > 30:
-        label_step = 2
-    if days_back > 60:
-        label_step = 5
-        
+    # X-axis day numbers under ticks
     for i, date in enumerate(dates_list):
         if i % label_step == 0 or i == len(dates_list) - 1:
             day_str = str(date.day)
             x = points[i][0]
             # Draw tick
             draw.line([(x, graph_y1), (x, graph_y1 + 4)], fill=DIM, width=1)
-            # Draw day number text
+            # Draw day number
             draw.text((x, graph_y1 + 10), day_str, fill=GRAY, font=font_xs, anchor="mt")
             
     # X-axis month labels (drawn below day numbers)
@@ -469,7 +419,7 @@ def generate_github_analytics(username, days_back=90, token=None):
             last_month = month_str
             
     # X-axis title
-    draw.text((W // 2, graph_y1 + 48), "Days", fill=GRAY, font=font_sm, anchor="mm")
+    draw.text((W // 2, graph_y1 + 50), "Days", fill=GRAY, font=font_sm, anchor="mm")
     
     # Footer
     footer_y = H - 25

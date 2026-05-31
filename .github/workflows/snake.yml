@@ -40,9 +40,16 @@ jobs:
           python generate_github_analytics.py
           
       - name: Commit and push analytics image
+        env:
+          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          COMMIT_NAME: ${{ secrets.COMMIT_NAME || 'github-actions[bot]' }}
+          COMMIT_EMAIL: ${{ secrets.COMMIT_EMAIL || 'github-actions[bot]@users.noreply.github.com' }}
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "${COMMIT_NAME}"
+          git config --global user.email "${COMMIT_EMAIL}"
+          if [ -n "${PERSONAL_TOKEN}" ]; then
+            git remote set-url origin https://x-access-token:${PERSONAL_TOKEN}@github.com/${{ github.repository }}.git
+          fi
           git add assets/github_analytics.png
           git diff-index --quiet HEAD || git commit -m "chore: update github analytics dashboard [skip ci]"
           git push origin main
@@ -55,7 +62,7 @@ jobs:
             dist/github-snake.svg
             dist/github-snake-dark.svg?palette=github-dark
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN || secrets.GITHUB_TOKEN }}
           
       - name: Push snake to output branch
         uses: crazy-max/ghaction-github-pages@v4
@@ -63,4 +70,4 @@ jobs:
           target_branch: output
           build_dir: dist
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN || secrets.GITHUB_TOKEN }}

@@ -22,9 +22,15 @@ jobs:
         run: python generate_github_analytics.py
       - name: Commit and push changes
         env:
+          PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          COMMIT_NAME: ${{ secrets.COMMIT_NAME || 'github-actions[bot]' }}
+          COMMIT_EMAIL: ${{ secrets.COMMIT_EMAIL || '41898282+github-actions[bot]@users.noreply.github.com' }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "${COMMIT_NAME}"
+          git config user.email "${COMMIT_EMAIL}"
+          if [ -n "${PERSONAL_TOKEN}" ]; then
+            git remote set-url origin https://x-access-token:${PERSONAL_TOKEN}@github.com/${{ github.repository }}.git
+          fi
           git add .
           git commit -m "Auto-update profile assets" || echo "No changes to commit"
           git push

@@ -2,7 +2,7 @@ name: Generate Profile Assets
 
 on:
   schedule:
-    - cron: "*/30 * * * *"  # Run every 30 minutes to keep snake updated throughout the day
+    - cron: "35 18 * * *"  # Run daily after day end (00:05 IST / 18:35 UTC)
   workflow_dispatch:  # Allow manual trigger
   push:
     branches:

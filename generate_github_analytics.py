@@ -33,29 +33,60 @@ GRAY     = (139, 148, 158)    # #8b949e
 DIM      = (48, 54, 61)       # #30363D
 
 
-def get_font(size):
-    """Try to load a decent font, fall back to default."""
-    font_paths = [
-        "C:/Windows/Fonts/segoeui.ttf",
-        "C:/Windows/Fonts/arial.ttf",
-        "C:/Windows/Fonts/consola.ttf",
-    ]
-    for fp in font_paths:
-        if os.path.exists(fp):
-            return ImageFont.truetype(fp, size)
+def get_font(size, bold=False):
+    """Load a high-quality TTF font, downloading it if necessary, or falling back to system fonts."""
+    font_dir = "assets/fonts"
+    os.makedirs(font_dir, exist_ok=True)
+    
+    font_name = "Inter-Bold.ttf" if bold else "Inter-Regular.ttf"
+    font_path = os.path.join(font_dir, font_name)
+    
+    if not os.path.exists(font_path):
+        url = f"https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/{'latin-700-normal.ttf' if bold else 'latin-400-normal.ttf'}"
+        try:
+            print(f"Downloading {font_name} from Google Fonts (via Fontsource)...")
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                with open(font_path, "wb") as f:
+                    f.write(r.content)
+            else:
+                print(f"Failed to download {font_name}: {r.status_code}")
+        except Exception as e:
+            print(f"Warning: Could not download {font_name}: {e}")
+            
+    if os.path.exists(font_path):
+        try:
+            return ImageFont.truetype(font_path, size)
+        except Exception as e:
+            print(f"Warning: Failed to load downloaded font {font_name}: {e}")
+        
+    # Fallback to system fonts
+    system_paths = []
+    if os.name == 'nt':  # Windows
+        system_paths = [
+            f"C:/Windows/Fonts/{'segoeuib' if bold else 'segoeui'}.ttf",
+            f"C:/Windows/Fonts/{'arialbd' if bold else 'arial'}.ttf",
+            f"C:/Windows/Fonts/{'consolab' if bold else 'consola'}.ttf",
+        ]
+    else:  # Linux (Ubuntu runner)
+        system_paths = [
+            f"/usr/share/fonts/truetype/dejavu/DejaVuSans{'-Bold' if bold else ''}.ttf",
+            f"/usr/share/fonts/truetype/liberation/LiberationSans-{'Bold' if bold else 'Regular'}.ttf",
+        ]
+        
+    for path in system_paths:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                continue
+                
+    # Ultimate fallback
     return ImageFont.load_default()
 
 
 def get_bold_font(size):
-    font_paths = [
-        "C:/Windows/Fonts/segoeuib.ttf",
-        "C:/Windows/Fonts/arialbd.ttf",
-        "C:/Windows/Fonts/consolab.ttf",
-    ]
-    for fp in font_paths:
-        if os.path.exists(fp):
-            return ImageFont.truetype(fp, size)
-    return get_font(size)
+    return get_font(size, bold=True)
 
 
 def fetch_github_contributions(username, token=None):
@@ -249,39 +280,53 @@ def generate_github_analytics(username, days_back=60, token=None):
     
     # Fonts
     font_title = get_bold_font(32)
-    font_metric = get_bold_font(120)
-    font_metric_sm = get_bold_font(80)
-    font_label = get_bold_font(26)
+    font_metric = get_bold_font(85)
+    font_metric_sm = get_bold_font(60)
+    font_label = get_bold_font(20)
     font_sm = get_font(14)
     font_xs = get_font(12)
+    font_badge = get_font(12, bold=True)
+    
+    # Draw a 1px border around the entire image for a card look
+    draw.rectangle([(0, 0), (W - 1, H - 1)], outline=DIM, width=1)
+    
+    # Draw top header badge
+    draw.rounded_rectangle([(W // 2 - 80, 20), (W // 2 + 80, 42)], radius=4, fill=(15, 23, 42), outline=DIM, width=1)
+    draw.text((W // 2, 31), "PROFILE METRICS", fill=BLUE, font=font_badge, anchor="mm")
     
     # Top title "GitHub Analytics"
-    draw.text((W // 2, 55), "GitHub Analytics", fill=WHITE, font=font_title, anchor="mm")
+    draw.text((W // 2, 70), "GitHub Analytics", fill=WHITE, font=font_title, anchor="mm")
     
-    # Horizontal rule separator under title
-    draw.line([(100, 100), (W - 100, 100)], fill=DIM, width=1)
+    # Metrics Card Layout Containers
+    # Card 1: Total Contributions
+    draw.rounded_rectangle([(120, 130), (420, 290)], radius=12, fill=CARD_BG, outline=DIM, width=1)
+    draw.line([(121, 131), (419, 131)], fill=BLUE, width=3)
     
-    # Metrics Row Positions (naked layout, floating text)
+    # Card 2: Current Streak
+    draw.rounded_rectangle([(450, 130), (750, 290)], radius=12, fill=CARD_BG, outline=DIM, width=1)
+    draw.line([(451, 131), (749, 131)], fill=PURPLE, width=3)
+    
+    # Card 3: Longest Streak
+    draw.rounded_rectangle([(780, 130), (1080, 290)], radius=12, fill=CARD_BG, outline=DIM, width=1)
+    draw.line([(781, 131), (1079, 131)], fill=BLUE, width=3)
+    
+    # Center positions and reference y-axis
     cx1, cx2, cx3 = 270, 600, 930
-    cy = 200
+    cy = 210
     
-    # Vertical separators between metrics
-    draw.line([(440, 135), (440, 265)], fill=DIM, width=1)
-    draw.line([(760, 135), (760, 265)], fill=DIM, width=1)
+    # ── Left Metric Card Content: Total Contributions ──
+    draw.text((cx1, cy - 18), str(total_contributions), fill=BLUE, font=font_metric, anchor="mm")
+    draw.text((cx1, cy + 38), "Total Contributions", fill=WHITE, font=font_label, anchor="mm")
+    draw.text((cx1, cy + 62), "Dec 7, 2024 - Present", fill=GRAY, font=font_xs, anchor="mm")
     
-    # ── Left Metric: Total Contributions (Blue value, white label) ──
-    draw.text((cx1, cy - 15), str(total_contributions), fill=BLUE, font=font_metric, anchor="mm")
-    draw.text((cx1, cy + 32), "Total Contributions", fill=WHITE, font=font_label, anchor="mm")
-    draw.text((cx1, cy + 58), "Dec 7, 2024 - Present", fill=GRAY, font=font_xs, anchor="mm")
-    
-    # ── Middle Metric: Current Streak (Circular progress ring with flame outline) ──
+    # ── Middle Metric Card Content: Current Streak ──
     r = 38
     circle_y = cy - 20
     # Ring
     draw.ellipse([(cx2 - r, circle_y - r), (cx2 + r, circle_y + r)], outline=DIM, width=4)
     draw.arc([(cx2 - r, circle_y - r), (cx2 + r, circle_y + r)], start=-90, end=270 if streaks["current"] > 0 else -90, fill=PURPLE, width=4)
     
-    # Purple flame shape outline on top of ring
+    # Flame overlay
     flame_y = circle_y - r - 5
     flame_points = [
         (cx2, flame_y - 12),
@@ -293,28 +338,32 @@ def generate_github_analytics(username, days_back=60, token=None):
         (cx2 - 4, flame_y - 1),
         (cx2 - 6, flame_y - 5),
     ]
-    draw.polygon(flame_points, outline=PURPLE, fill=BG, width=2)
+    draw.polygon(flame_points, outline=PURPLE, fill=CARD_BG, width=2)
     
     # Texts
     draw.text((cx2, circle_y + 2), str(streaks["current"]), fill=WHITE, font=font_metric_sm, anchor="mm")
-    draw.text((cx2, cy + 46), "Current Streak", fill=BLUE, font=font_label, anchor="mm")
-    draw.text((cx2, cy + 72), streaks["current_range"] if streaks["current_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
+    draw.text((cx2, cy + 42), "Current Streak", fill=BLUE, font=font_label, anchor="mm")
+    draw.text((cx2, cy + 66), streaks["current_range"] if streaks["current_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
     
-    # ── Right Metric: Longest Streak (Blue value, white label) ──
-    draw.text((cx3, cy - 15), str(streaks["longest"]), fill=BLUE, font=font_metric, anchor="mm")
-    draw.text((cx3, cy + 32), "Longest Streak", fill=WHITE, font=font_label, anchor="mm")
-    draw.text((cx3, cy + 58), streaks["longest_range"] if streaks["longest_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
+    # ── Right Metric Card Content: Longest Streak ──
+    draw.text((cx3, cy - 18), str(streaks["longest"]), fill=BLUE, font=font_metric, anchor="mm")
+    draw.text((cx3, cy + 38), "Longest Streak", fill=WHITE, font=font_label, anchor="mm")
+    draw.text((cx3, cy + 62), streaks["longest_range"] if streaks["longest_range"] else "None", fill=GRAY, font=font_xs, anchor="mm")
     
-    # ── Line Graph Section ──
-    graph_y0 = 400
-    graph_y1 = 710
-    graph_x0 = 100
-    graph_x1 = 1100
+    # ── Large Chart Card Container ──
+    draw.rounded_rectangle([(100, 330), (1100, 750)], radius=16, fill=CARD_BG, outline=DIM, width=1)
+    draw.line([(101, 331), (1099, 331)], fill=PURPLE, width=3)
+    
+    # Chart Area Coordinates inside Card
+    graph_x0 = 160
+    graph_x1 = 1040
+    graph_y0 = 420
+    graph_y1 = 680
     graph_w = graph_x1 - graph_x0
     graph_h = graph_y1 - graph_y0
     
-    # Graph Title (Light blue "Arpan Majumdar's Contribution Graph")
-    draw.text((W // 2, graph_y0 - 40), "Arpan Majumdar's Contribution Graph", fill=BLUE, font=font_label, anchor="mm")
+    # Graph Title
+    draw.text((W // 2, 375), "Arpan Majumdar's Contribution Graph", fill=BLUE, font=font_label, anchor="mm")
     
     # Gather contribution data list for the last days_back days
     today = datetime.now().date()
@@ -349,19 +398,6 @@ def generate_github_analytics(username, days_back=60, token=None):
         x = graph_x0 + i * x_spacing
         y = graph_y1 - (count / y_max) * graph_h
         points.append((x, y))
-        
-    # 2. Draw vertical dotted grid lines at label steps
-    label_step = 1
-    if days_back > 30:
-        label_step = 2
-    if days_back > 60:
-        label_step = 5
-        
-    for i in range(len(points)):
-        if i % label_step == 0 or i == len(points) - 1:
-            x = points[i][0]
-            for y in range(graph_y0, graph_y1, 8):
-                draw.line([(x, y), (x, y + 4)], fill=DIM, width=1)
                 
     # Generate smooth spline points (Catmull-Rom spline)
     spline_points = []
@@ -382,24 +418,35 @@ def generate_github_analytics(username, days_back=60, token=None):
     else:
         spline_points = points
         
-    # 3. Translucent purple fill under the curve
+    # 3. Translucent fading purple fill under the curve
+    mask = Image.new("L", img.size, 0)
+    mask_draw = ImageDraw.Draw(mask)
+    polygon_points = [(graph_x0, graph_y1)] + spline_points + [(graph_x1, graph_y1)]
+    mask_draw.polygon(polygon_points, fill=255)
+
     gradient_overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     gradient_draw = ImageDraw.Draw(gradient_overlay)
-    polygon_points = [(graph_x0, graph_y1)] + spline_points + [(graph_x1, graph_y1)]
-    gradient_draw.polygon(polygon_points, fill=(124, 58, 237, 40))
-    img.paste(gradient_overlay, (0, 0), gradient_overlay)
+    for y in range(graph_y0, graph_y1 + 1):
+        # Calculate alpha: fades out from 90 at graph_y0 to 0 at graph_y1
+        t = (y - graph_y0) / (graph_y1 - graph_y0)
+        alpha = int(90 * (1.0 - t))
+        gradient_draw.line([(graph_x0, y), (graph_x1, y)], fill=(124, 58, 237, alpha), width=1)
+        
+    img.paste(gradient_overlay, (0, 0), mask)
     
     # 4. Solid purple curve line
-    draw.line(spline_points, fill=PURPLE, width=3)
+    draw.line(spline_points, fill=PURPLE, width=4)
     
     # 5. Data markers (white dots with purple borders)
     for x, y in points:
-        draw.ellipse([(x - 3, y - 3), (x + 3, y + 3)], fill=WHITE, outline=PURPLE, width=1)
+        draw.ellipse([(x - 5, y - 5), (x + 5, y + 5)], fill=PURPLE)
+        draw.ellipse([(x - 2, y - 2), (x + 2, y + 2)], fill=WHITE)
         
     # X-axis base line
     draw.line([(graph_x0, graph_y1), (graph_x1, graph_y1)], fill=DIM, width=2)
     
     # X-axis day numbers under ticks
+    label_step = 1 if days_back <= 30 else 5
     for i, date in enumerate(dates_list):
         if i % label_step == 0 or i == len(dates_list) - 1:
             day_str = str(date.day)
@@ -419,10 +466,10 @@ def generate_github_analytics(username, days_back=60, token=None):
             last_month = month_str
             
     # X-axis title
-    draw.text((W // 2, graph_y1 + 50), "Days", fill=GRAY, font=font_sm, anchor="mm")
+    draw.text((W // 2, graph_y1 + 48), "Days", fill=GRAY, font=font_sm, anchor="mm")
     
     # Footer
-    footer_y = H - 25
+    footer_y = H - 22
     draw.text((W // 2, footer_y), f"Generated on {datetime.now().strftime('%B %d, %Y')}", fill=DIM, font=font_xs, anchor="mm")
     
     # Save image

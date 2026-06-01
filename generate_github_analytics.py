@@ -326,19 +326,6 @@ def generate_github_analytics(username, days_back=60, token=None):
     draw.ellipse([(cx2 - r, circle_y - r), (cx2 + r, circle_y + r)], outline=DIM, width=4)
     draw.arc([(cx2 - r, circle_y - r), (cx2 + r, circle_y + r)], start=-90, end=270 if streaks["current"] > 0 else -90, fill=PURPLE, width=4)
     
-    # Flame overlay
-    flame_y = circle_y - r - 5
-    flame_points = [
-        (cx2, flame_y - 12),
-        (cx2 + 6, flame_y - 5),
-        (cx2 + 4, flame_y - 1),
-        (cx2 + 7, flame_y + 4),
-        (cx2, flame_y + 8),
-        (cx2 - 7, flame_y + 4),
-        (cx2 - 4, flame_y - 1),
-        (cx2 - 6, flame_y - 5),
-    ]
-    draw.polygon(flame_points, outline=PURPLE, fill=CARD_BG, width=2)
     
     # Texts
     draw.text((cx2, circle_y + 2), str(streaks["current"]), fill=WHITE, font=font_metric_sm, anchor="mm")

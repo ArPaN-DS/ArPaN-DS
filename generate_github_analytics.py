@@ -249,9 +249,9 @@ def generate_github_analytics(username, days_back=60, token=None):
     
     # Fonts
     font_title = get_bold_font(32)
-    font_metric = get_bold_font(60)
-    font_metric_sm = get_bold_font(38)
-    font_label = get_bold_font(16)
+    font_metric = get_bold_font(90)
+    font_metric_sm = get_bold_font(60)
+    font_label = get_bold_font(22)
     font_sm = get_font(14)
     font_xs = get_font(12)
     

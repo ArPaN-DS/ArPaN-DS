@@ -26,29 +26,61 @@ GRAY     = (139, 148, 158)    # #8b949e
 DIM      = (48, 54, 61)       # #30363D
 
 
-def get_font(size):
-    """Try to load a decent font, fall back to default."""
-    font_paths = [
-        "C:/Windows/Fonts/consola.ttf",
-        "C:/Windows/Fonts/segoeui.ttf",
-        "C:/Windows/Fonts/arial.ttf",
-    ]
-    for fp in font_paths:
-        if os.path.exists(fp):
-            return ImageFont.truetype(fp, size)
+def get_font(size, bold=False):
+    """Load a high-quality TTF font, downloading it if necessary, or falling back to system fonts."""
+    import requests
+    font_dir = "assets/fonts"
+    os.makedirs(font_dir, exist_ok=True)
+    
+    font_name = "Inter-Bold.ttf" if bold else "Inter-Regular.ttf"
+    font_path = os.path.join(font_dir, font_name)
+    
+    if not os.path.exists(font_path):
+        url = f"https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/{'latin-700-normal.ttf' if bold else 'latin-400-normal.ttf'}"
+        try:
+            print(f"Downloading {font_name} from Google Fonts (via Fontsource)...")
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                with open(font_path, "wb") as f:
+                    f.write(r.content)
+            else:
+                print(f"Failed to download {font_name}: {r.status_code}")
+        except Exception as e:
+            print(f"Warning: Could not download {font_name}: {e}")
+            
+    if os.path.exists(font_path):
+        try:
+            return ImageFont.truetype(font_path, size)
+        except Exception as e:
+            print(f"Warning: Failed to load downloaded font {font_name}: {e}")
+        
+    # Fallback to system fonts
+    system_paths = []
+    if os.name == 'nt':  # Windows
+        system_paths = [
+            f"C:/Windows/Fonts/{'segoeuib' if bold else 'segoeui'}.ttf",
+            f"C:/Windows/Fonts/{'arialbd' if bold else 'arial'}.ttf",
+            f"C:/Windows/Fonts/{'consolab' if bold else 'consola'}.ttf",
+        ]
+    else:  # Linux (Ubuntu runner)
+        system_paths = [
+            f"/usr/share/fonts/truetype/dejavu/DejaVuSans{'-Bold' if bold else ''}.ttf",
+            f"/usr/share/fonts/truetype/liberation/LiberationSans-{'Bold' if bold else 'Regular'}.ttf",
+        ]
+        
+    for path in system_paths:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                continue
+                
+    # Ultimate fallback
     return ImageFont.load_default()
 
 
 def get_bold_font(size):
-    font_paths = [
-        "C:/Windows/Fonts/consolab.ttf",
-        "C:/Windows/Fonts/segoeuib.ttf",
-        "C:/Windows/Fonts/arialbd.ttf",
-    ]
-    for fp in font_paths:
-        if os.path.exists(fp):
-            return ImageFont.truetype(fp, size)
-    return get_font(size)
+    return get_font(size, bold=True)
 
 
 def draw_rounded_rect(draw, xy, radius, fill, outline=None):

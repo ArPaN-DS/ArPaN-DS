@@ -1,7 +1,7 @@
 name: Auto-update profile
 on:
   schedule:
-    - cron: '0 0 * * *'   # daily at midnight UTC
+    - cron: '35 18 * * *'   # Run daily after day end (00:05 IST / 18:35 UTC)
   workflow_dispatch:
 
 jobs:

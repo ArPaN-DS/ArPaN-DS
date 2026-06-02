@@ -8,7 +8,7 @@ Generate GitHub Analytics Dashboard
 
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import os
@@ -18,6 +18,14 @@ GITHUB_USERNAME = "ArPaN-DS"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", None)  # Set via environment variable or repository secret
 DAYS_BACK = 60  # Change to 30, 60, or 120
 OUTPUT_PATH = "assets/github_analytics.png"
+TIMEZONE_OFFSET = float(os.getenv("TIMEZONE_OFFSET", "5.5"))  # Default to UTC+5.5 (IST)
+
+
+def get_local_now():
+    """Return the current datetime in the user's timezone."""
+    utc_now = datetime.now(timezone.utc).replace(tzinfo=None)
+    return utc_now + timedelta(hours=TIMEZONE_OFFSET)
+
 
 # ── Color Palette (matching profile theme) ──────────────────────
 BG       = (13, 17, 23)       # #0D1117
@@ -97,7 +105,7 @@ def fetch_github_contributions(username, token=None):
     url = "https://api.github.com/graphql"
     
     start_year = 2024
-    current_year = datetime.now().year
+    current_year = get_local_now().year
     
     contributions_by_date = {}
     
@@ -201,7 +209,7 @@ def calculate_streaks(contributions_by_date):
             current_longest_start = curr_date
             
     # Calculate current streak
-    today = datetime.now().date()
+    today = get_local_now().date()
     yesterday = today - timedelta(days=1)
     
     current_streak = 0
@@ -353,7 +361,7 @@ def generate_github_analytics(username, days_back=60, token=None):
     draw.text((W // 2, 375), "Arpan Majumdar's Contribution Graph", fill=BLUE, font=font_label, anchor="mm")
     
     # Gather contribution data list for the last days_back days
-    today = datetime.now().date()
+    today = get_local_now().date()
     contributions_list = []
     dates_list = []
     for i in range(days_back):
@@ -457,7 +465,7 @@ def generate_github_analytics(username, days_back=60, token=None):
     
     # Footer
     footer_y = H - 22
-    draw.text((W // 2, footer_y), f"Generated on {datetime.now().strftime('%B %d, %Y')}", fill=DIM, font=font_xs, anchor="mm")
+    draw.text((W // 2, footer_y), f"Generated on {get_local_now().strftime('%B %d, %Y')}", fill=DIM, font=font_xs, anchor="mm")
     
     # Save image
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
@@ -471,7 +479,7 @@ def generate_github_analytics(username, days_back=60, token=None):
 def generate_demo_data(days_back):
     """Generate demo contribution data for testing."""
     contributions_by_date = {}
-    today = datetime.now().date()
+    today = get_local_now().date()
     
     start_date = datetime.strptime("2024-12-07", "%Y-%m-%d").date()
     total_days = (today - start_date).days + 1

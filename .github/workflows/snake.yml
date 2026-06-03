@@ -51,8 +51,12 @@ jobs:
             git remote set-url origin https://x-access-token:${PERSONAL_TOKEN}@github.com/${{ github.repository }}.git
           fi
           git add assets/github_analytics.png
-          git diff-index --quiet HEAD || git commit -m "chore: update github analytics dashboard [skip ci]"
-          git push origin main
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore: update github analytics dashboard [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "No changes to commit"
+          fi
           
       - name: Generate Snake
         uses: Platane/snk/svg-only@v3

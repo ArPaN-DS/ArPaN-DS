@@ -12,6 +12,13 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import os
+import sys
+
+# Reconfigure stdout/stderr to use UTF-8 to prevent UnicodeEncodeError when printing emojis on Windows
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
 
 # ── Configuration ──────────────────────────────────────────────
 GITHUB_USERNAME = "ArPaN-DS"
